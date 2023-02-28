@@ -1,3 +1,5 @@
 # YoutubeSimpleChannelBackup
 Youtube Backup Channel Python Script
-It does change the filenames so the OS (linux, windows and dropbox) can coope with the filenames.
+Download Youtube Channel Python Script
+
+And it does change the filenames so the OS (linux, windows and dropbox, Mac, etc...) can coope with the filenames.

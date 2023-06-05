@@ -6,9 +6,9 @@ try:
 except:
     charOp = None
     
-outChar = "_"
+outChar = '_'
     
-chars = ["/", "\\", "|", "#", "/", "?", "¿", charOp]
+chars = ['/', '\\', '|', '#', '/', '?', '¿', '⧸', charOp]
 
 files = os.listdir(path)
 
@@ -17,7 +17,7 @@ for file_name in files:
     old_name = file_name
     
     for char in chars:
-        if char in file_name:
+        if char is not None and char in file_name:
             if not save_file: 
                 save_file = True
                 new_name = file_name.replace (char, outChar)

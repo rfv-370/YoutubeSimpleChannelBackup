@@ -11,10 +11,12 @@ To install yt_dlp : goto : https://github.com/yt-dlp/yt-dlp
 
 ## Usage
 
-- python3 yt_downloader.py <URL> /folder_destination
+- python3 yt_downloader.py URL_Youtube /folder_destination
 
 URL: the URL of the video, channel, or playlist to download
 folder_destination: the directory where the downloaded files will be saved
+https://www.youtube.com/[@YourChannel]/videos
+
 
 #### Download format
 The format variable sets the download format. By default, it is set to the best quality MP4 format.

@@ -1,4 +1,4 @@
-# YoutubeSimpleChannelBackup
+# YoutubeSimpleChannelBackup ( yt-scb )
 
 Youtube Backup Channel Python Script
 

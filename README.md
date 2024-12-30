@@ -2,7 +2,7 @@
 
 Youtube Backup Channel Python Script
 
-This script downloads videos from YouTube, Twitch, and related websites using the yt_dlp module. It can download a single video, all videos from a channel, or all videos from a playlist.
+This python script downloads videos from YouTube, Twitch, and related websites using the yt_dlp module. It can download a single video, all videos from a channel, or all videos from a playlist.
 
 ## Requirements
 - Python 3
@@ -31,3 +31,7 @@ The script supports the following types of URLs:
 YouTube channel: [https://www.youtube.com/@channel_name/videos]
 
 And it does change the filenames so the OS (linux, windows and dropbox, Mac, etc...) can coope with the filenames.
+
+## Platforms:
+Tested Dec. 2024 on Ubuntu Server 24.x - should work on any Linux distro. - might need adjustment for Windows or Mac.
+

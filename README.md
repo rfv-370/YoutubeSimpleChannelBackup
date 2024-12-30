@@ -1,7 +1,7 @@
 # YoutubeSimpleChannelBackup ( yt-scb )
 
 Youtube Backup Channel Python Script
-
+Backup your Youtube Channel rapidly.
 This python script downloads videos from YouTube, Twitch, and related websites using the yt_dlp module. It can download a single video, all videos from a channel, or all videos from a playlist.
 
 ## Requirements

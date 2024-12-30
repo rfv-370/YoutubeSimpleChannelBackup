@@ -1,81 +1,97 @@
-import yt_dlp
-import argparse
-from pathlib import Path
+import os
 import logging
+import yt_dlp
+from slugify import slugify
+from datetime import datetime
+from pathlib import Path
+from argparse import ArgumentParser
 
-# Global counters
-downloaded_videos = 0
-errors = 0
+# Set up logging
+LOG_FILE = "youtube_channel_backup.log"
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler()
+    ]
+)
 
-def setup_logging():
-    """Set up logging to console and file."""
-    log_file = "youtube_channel_backup.log"
-    logging.basicConfig(
-        level=logging.DEBUG,  # Log all levels
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_file, mode='a'),  # Append to log file
-            logging.StreamHandler()  # Print to terminal
-        ]
-    )
-    logging.info(f"Logging initialized. Logs will be saved to {log_file}")
+def setup_output_directory(directory: str):
+    """Ensure the target directory exists."""
+    try:
+        Path(directory).mkdir(parents=True, exist_ok=True)
+        logging.info(f"Output directory set up: {directory}")
+    except Exception as e:
+        logging.error(f"Failed to set up output directory: {directory}. Error: {e}")
+        raise
 
-def parse_arguments():
-    """Parse command line arguments for URL and output directory."""
-    parser = argparse.ArgumentParser(description='Download an entire YouTube channel or playlist for backup.')
-    parser.add_argument('url', type=str, help='YouTube channel or playlist URL')
-    parser.add_argument('output_path', type=str, help='Path where the videos will be saved')
-    return parser.parse_args()
-
-def get_ydl_options(output_path):
-    """Configure yt-dlp options for downloading."""
+def get_yt_dlp_options(output_dir: str):
+    """Configure yt-dlp options for downloading videos."""
     return {
-        'format': 'bestvideo+bestaudio/best',
-        'outtmpl': str(Path(output_path) / '%(uploader)s - %(upload_date)s - %(title)s [%(id)s].%(ext)s'),
-        'merge_output_format': 'mp4',  # Ensure the output format is MP4 if merging is necessary
-        'noplaylist': False,  # Download the entire playlist/channel
-        'download_archive': str(Path(output_path) / 'downloaded_videos.txt'),  # Keep track of downloaded videos
-        'progress_hooks': [progress_hook],  # Handle progress updates
-        'postprocessors': [{
-            'key': 'FFmpegMetadata',
-            'add_metadata': True
-        }]
+        'format': 'best',
+        'outtmpl': os.path.join(output_dir, '%(upload_date)s_%(title)s_%(id)s.%(ext)s'),
+        'writeinfojson': True,
+        'quiet': False,
+        'noprogress': False,
+        'retries': 3,
+        'logger': logging.getLogger()
     }
 
-def progress_hook(d):
-    """Handle progress updates and logging."""
-    global downloaded_videos, errors
-    if d['status'] == 'finished':
-        downloaded_videos += 1
-        logging.info(f"Finished downloading: {d['filename']}")
-    elif d['status'] == 'error':
-        errors += 1
-        logging.error(f"Error downloading: {d['filename']}")
+def clean_filename(title: str):
+    """Clean video title for safe filenames."""
+    return slugify(title, max_length=200)
 
-def download_channel(url, output_path):
-    """Use yt-dlp to download the entire YouTube channel or playlist."""
-    ydl_opts = get_ydl_options(output_path)
-    logging.info(f"Starting download from {url} to {output_path}")
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+def download_videos(channel_url: str, output_dir: str):
+    """Download all videos from the given YouTube channel or playlist."""
+    options = get_yt_dlp_options(output_dir)
+    with yt_dlp.YoutubeDL(options) as ydl:
+        try:
+            logging.info(f"Starting download for: {channel_url}")
+            result = ydl.extract_info(channel_url, download=True)  # Ensure download=True
+
+            if 'entries' in result:
+                for entry in result['entries']:
+                    video_url = entry.get('webpage_url', None)
+                    video_title = clean_filename(entry.get('title', 'Unknown Title'))
+                    if video_url:
+                        logging.info(f"Preparing to download: {video_title} ({video_url})")
+                        try:
+                            ydl.download([video_url])
+                            logging.info(f"Successfully downloaded: {video_title}")
+                        except yt_dlp.utils.DownloadError as e:
+                            logging.error(f"Failed to download {video_title}: {e}")
+                        except Exception as ex:
+                            logging.error(f"Unexpected error downloading {video_title}: {ex}")
+                    else:
+                        logging.warning(f"No URL found for video: {entry}")
+            else:
+                logging.warning("No entries found for the provided URL.")
+        except yt_dlp.utils.DownloadError as e:
+            logging.error(f"Error downloading videos: {e}")
+        except Exception as e:
+            logging.error(f"Unexpected error: {e}")
+
+def validate_url(channel_url: str):
+    """Ensure the provided URL is valid."""
+    if not channel_url.startswith("http"):
+        logging.error("Invalid URL. Ensure it starts with http or https.")
+        raise ValueError("Invalid URL format.")
 
 def main():
-    setup_logging()
-    args = parse_arguments()
+    """Main function to parse arguments and start the backup process."""
+    parser = ArgumentParser(description="Backup all videos from a YouTube channel or playlist.")
+    parser.add_argument("channel_url", help="YouTube channel or playlist URL")
+    parser.add_argument("output_dir", help="Directory to save downloaded videos")
 
-    # Create output directory if it doesn't exist
-    output_path = Path(args.output_path)
-    if not output_path.exists():
-        output_path.mkdir(parents=True, exist_ok=True)
-        logging.info(f"Created output directory: {output_path}")
+    args = parser.parse_args()
 
     try:
-        download_channel(args.url, args.output_path)
+        validate_url(args.channel_url)
+        setup_output_directory(args.output_dir)
+        download_videos(args.channel_url, args.output_dir)
     except Exception as e:
-        logging.error(f"An error occurred: {e}")
-    finally:
-        logging.info("Backup process completed.")
-        logging.info(f"Summary: {downloaded_videos} videos downloaded successfully, {errors} errors encountered.")
+        logging.error(f"Backup process failed: {e}")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

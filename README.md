@@ -17,6 +17,8 @@ URL: the URL of the video, channel, or playlist to download
 folder_destination: the directory where the downloaded files will be saved
 https://www.youtube.com/[@YourChannel]/videos
 
+/folder_destination:
+the folder must be created and existing. It deos not create the folder for many reasons...
 
 #### Download format
 The format variable sets the download format. By default, it is set to the best quality MP4 format.

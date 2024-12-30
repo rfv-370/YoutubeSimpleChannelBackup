@@ -45,6 +45,11 @@ def clean_filename(title: str):
 def download_videos(channel_url: str, output_dir: str):
     """Download all videos from the given YouTube channel or playlist."""
     options = get_yt_dlp_options(output_dir)
+    total_videos = 0
+    downloaded_videos = 0
+    skipped_videos = 0
+    failed_videos = 0
+
     with yt_dlp.YoutubeDL(options) as ydl:
         try:
             logging.info(f"Starting download for: {channel_url}")
@@ -52,25 +57,45 @@ def download_videos(channel_url: str, output_dir: str):
 
             if 'entries' in result:
                 for entry in result['entries']:
+                    total_videos += 1
                     video_url = entry.get('webpage_url', None)
                     video_title = clean_filename(entry.get('title', 'Unknown Title'))
+                    output_filename = os.path.join(
+                        output_dir, f"{entry.get('upload_date', 'NA')}_{video_title}_{entry['id']}.mp4"
+                    )
+
+                    if os.path.exists(output_filename):
+                        logging.info(f"Skipping {video_title}: File already exists.")
+                        skipped_videos += 1
+                        continue
+
                     if video_url:
                         logging.info(f"Preparing to download: {video_title} ({video_url})")
                         try:
                             ydl.download([video_url])
+                            downloaded_videos += 1
                             logging.info(f"Successfully downloaded: {video_title}")
                         except yt_dlp.utils.DownloadError as e:
                             logging.error(f"Failed to download {video_title}: {e}")
+                            failed_videos += 1
                         except Exception as ex:
                             logging.error(f"Unexpected error downloading {video_title}: {ex}")
+                            failed_videos += 1
                     else:
                         logging.warning(f"No URL found for video: {entry}")
+                        failed_videos += 1
             else:
                 logging.warning("No entries found for the provided URL.")
         except yt_dlp.utils.DownloadError as e:
             logging.error(f"Error downloading videos: {e}")
         except Exception as e:
             logging.error(f"Unexpected error: {e}")
+
+    logging.info("Download Summary:")
+    logging.info(f"Total Videos Attempted: {total_videos}")
+    logging.info(f"Videos Downloaded: {downloaded_videos}")
+    logging.info(f"Videos Skipped (Already Exist): {skipped_videos}")
+    logging.info(f"Videos Failed: {failed_videos}")
 
 def validate_url(channel_url: str):
     """Ensure the provided URL is valid."""
